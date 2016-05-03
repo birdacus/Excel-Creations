@@ -1,0 +1,382 @@
+package inventory.report;
+
+import java.util.*;
+import java.text.*;
+import java.io.*;
+import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import org.apache.poi.hssf.usermodel.*;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import org.apache.poi.ss.usermodel.Cell;
+
+class DistributionList {
+
+    String name;
+    String email;
+    int id;
+    String store;
+
+    DistributionList(String name, String email, int id, String store) {
+        this.name = name;
+        this.email = email;
+        this.id = id;
+        this.store = store;
+    }
+}
+
+class Email {
+
+    public void sendEmail(String to, String subjectText, String messageText, String file) {
+
+        final String from = "youremail@email.com"; //your email address
+        final String password = "password"; //your password
+        String copy = "ccEmail@email.com"; //email to CC
+
+        String host = "smtp.office365.com";
+
+        Properties props = System.getProperties();
+
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.office365.com");
+        props.put("mail.smtp.port", "port number here");
+
+        Session session = Session.getInstance(props,
+                new Authenticator() {
+
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+
+                return new PasswordAuthentication(from, password);
+
+            }
+
+        });
+
+        try {
+
+            MimeMessage message = new MimeMessage(session);
+
+            message.setFrom(from);
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to, false));
+            message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(copy, false));
+            message.setSubject(subjectText);
+            message.setSentDate(new java.util.Date());
+
+            message.setText(messageText, "utf-8");
+
+            BodyPart msgB1 = new MimeBodyPart();
+            msgB1.setText(messageText);
+
+            BodyPart msgB2 = new MimeBodyPart();
+
+            DataSource source = new FileDataSource(file);
+            msgB2.setDataHandler(new DataHandler(source));
+            msgB2.setFileName(file);
+
+            Multipart mp = new MimeMultipart();
+
+            mp.addBodyPart(msgB1);
+            mp.addBodyPart(msgB2);
+            message.setContent(mp);
+
+            Transport.send(message);
+
+        } catch (MessagingException ex) {
+            Logger.getLogger(Email.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+}
+
+class Email2{
+    
+    public void sendEmail(String to, String subjectText, String messageText, String file){
+        
+        final String from = "youremail@email.com"; //your email address
+        final String password = "password" ; //your password
+        
+        String host = "smtp.office365.com";
+        
+        Properties props = System.getProperties();
+        
+        props.put("mail.smtp.auth","true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.office365.com");
+        props.put("mail.smtp.port", "port number here");
+        
+        
+        Session session = Session.getInstance(props,
+                    
+                    new Authenticator(){ 
+                       @Override
+                       protected PasswordAuthentication getPasswordAuthentication(){
+                           
+                           return new PasswordAuthentication(from, password);        
+                       }       
+                    });
+
+        try{
+            MimeMessage message = new MimeMessage(session);
+            
+            message.setFrom(from);
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to, false));
+            //message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(copy, false));
+            message.setSubject(subjectText);
+            message.setSentDate(new java.util.Date());
+            
+            message.setText(messageText,"utf-8");
+            
+            BodyPart msgB1 = new MimeBodyPart();
+            msgB1.setText(messageText);
+            
+            BodyPart msgB2 = new MimeBodyPart();
+            
+            DataSource source = new FileDataSource(file);
+            msgB2.setDataHandler(new DataHandler(source));
+            msgB2.setFileName(file);
+            
+            
+            Multipart  mp = new MimeMultipart();
+            
+            mp.addBodyPart(msgB1);
+            mp.addBodyPart(msgB2);
+            message.setContent(mp);
+            
+            Transport.send(message);
+    
+        } catch (MessagingException ex) {
+            Logger.getLogger(Email.class.getName()).log(Level.SEVERE, null, ex);
+        }  
+    }   
+}
+
+
+public class InventoryReport {
+
+    public static void main(String[] args) {
+
+        //your connection stuff
+        String db = "jdbc:mysql://" + "check comments for what goes here"; //db add address and port to end of string (ex. 11.111.11.111:3303/your-database)
+        String username = "username"; //your username to connect
+        String password = "password"; //your password to connect
+
+        //starting your excel file
+        //create your connection and build the rest of the file
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+
+            Connection con = DriverManager.getConnection(db, username, password);
+
+            Statement st = con.createStatement(); //statement
+            ResultSet rs; //results
+
+            ArrayList<DistributionList> list = new ArrayList<DistributionList>();
+            Scanner scanner = new Scanner(new File("list"));
+            while (scanner.hasNext()) {
+                String line = scanner.nextLine();
+                String[] tokens = line.split(",");
+                list.add(new DistributionList(tokens[0], tokens[1], Integer.parseInt(tokens[2]),tokens[3]));
+            }
+
+            for (int i = 0; i < list.size(); i++) {
+                File outFile = new File("InventoryReport.xls"); //create your file
+
+                //create your workbook
+                HSSFWorkbook wb = new HSSFWorkbook();
+                HSSFSheet sheet = wb.createSheet("Accessory Count");
+                HSSFRow header = sheet.createRow(0);
+                
+                HSSFCellStyle style = wb.createCellStyle();
+                HSSFFont font = wb.createFont();
+                font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+                style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+                style.setFont(font);
+
+                HSSFCell cell = header.createCell(0);
+                cell.setCellValue("Warehouse #");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(1);
+                cell.setCellValue("Warehouse");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(2);
+                cell.setCellValue("Inventory Type #");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(3);
+                cell.setCellValue("Inventory Type");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(4);
+                cell.setCellValue("Total Quantity on Hand");
+                cell.setCellStyle(style);
+
+                String name = list.get(i).name;
+                String toEmail = list.get(i).email;
+                int id = list.get(i).id;
+                DateFormat df = new SimpleDateFormat("MM/dd/yyy");
+                java.util.Date date = new java.util.Date();
+                String stores = list.get(i).store;
+                String subject = stores+" Inventory Report, "+df.format(date);
+                String body = "Hello " + name + ",\n\n"+"The Inventory Report for "+stores+" is attached.";
+
+                String query = "SQL Query Here"; //your query
+
+                rs = st.executeQuery(query); //execute your query..
+
+                int rowNumber = 1; //row counter for the excel file
+                HSSFRow nextRow; //the rows you will be writing to
+                HSSFCell nextCell; //the cells you will be writing to
+                try {
+                    while (rs.next()) {
+                        //do something with the results
+                        nextRow = sheet.createRow(rowNumber++); //create a new row and increment the rowCounter
+                        nextCell = nextRow.createCell(0);
+                        nextCell.setCellValue(rs.getInt(1));
+                        nextCell = nextRow.createCell(1); //repeat this until you have all of your cells in the row
+                        nextCell.setCellValue(rs.getString(2));
+                        nextCell = nextRow.createCell(2);
+                        nextCell.setCellValue(rs.getInt(3));
+                        nextCell = nextRow.createCell(3);
+                        nextCell.setCellValue(rs.getString(4));
+                        nextCell = nextRow.createCell(4);
+                        nextCell.setCellValue(rs.getInt(5));
+                    }
+                    
+                    for(int j=0;j<5;j++){
+                    sheet.autoSizeColumn(j);
+                    }
+                    
+                } catch (SQLException ex) {
+                    Logger.getLogger(InventoryReport.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                sheet = wb.createSheet("Serialized Overview");//Beginning of second sheet
+                header = sheet.createRow(0);
+
+                cell = header.createCell(0);
+                cell.setCellValue("Warehouse #");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(1);
+                cell.setCellValue("Inventory Type ID");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(2);
+                cell.setCellValue("Inventory Type");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(3);
+                cell.setCellValue("Quantity on Hand");
+                cell.setCellStyle(style);
+
+                String query2 = "Second SQL Query Here"; //your query
+
+                rs = st.executeQuery(query2); //execute your query.
+
+                rowNumber = 1; //row counter for the excel file
+                try {
+                    while (rs.next()) {
+                        //do something with the results
+                        nextRow = sheet.createRow(rowNumber++); //create a new row and increment the rowCounter
+                        nextCell = nextRow.createCell(0);
+                        nextCell.setCellValue(rs.getString(1));
+                        nextCell = nextRow.createCell(1); //repeat this until you have all of your cells in the row
+                        nextCell.setCellValue(rs.getString(2));
+                        nextCell = nextRow.createCell(2);
+                        nextCell.setCellValue(rs.getString(3));
+                        nextCell = nextRow.createCell(3);
+                        nextCell.setCellValue(rs.getString(4));
+                    }
+                    
+                    for(int j=0;j<4;j++){
+                    sheet.autoSizeColumn(j);
+                    }
+                    
+                } catch (SQLException ex) {
+                    Logger.getLogger(InventoryReport.class.getName()).log(Level.SEVERE, null, ex);
+                }//End of second sheet
+                
+                sheet = wb.createSheet("Serialized-Detailed List");//Beginning of third sheet
+                header = sheet.createRow(0);
+
+                cell = header.createCell(0);
+                cell.setCellValue("Warehouse ID");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(1);
+                cell.setCellValue("Inventory Type ID");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(2);
+                cell.setCellValue("Inventory Type");
+                cell.setCellStyle(style);
+
+                cell = header.createCell(3);
+                cell.setCellValue("ESN/SIM");
+                cell.setCellStyle(style);
+                
+                cell = header.createCell(4);
+                cell.setCellValue("Status");
+                cell.setCellStyle(style);
+
+                String query3 = "Third SQL Query Here"; //your query
+
+                rs = st.executeQuery(query3); //execute your query.
+
+                rowNumber = 1; //row counter for the excel file
+                try {
+                    while (rs.next()) {
+                        //do something with the results
+                        nextRow = sheet.createRow(rowNumber++); //create a new row and increment the rowCounter
+                        nextCell = nextRow.createCell(0);
+                        nextCell.setCellValue(rs.getString(1));
+                        nextCell = nextRow.createCell(1); //repeat this until you have all of your cells in the row
+                        nextCell.setCellValue(rs.getString(2));
+                        nextCell = nextRow.createCell(2);
+                        nextCell.setCellValue(rs.getString(3));
+                        nextCell = nextRow.createCell(3);
+                        nextCell.setCellValue(rs.getString(4));
+                        nextCell = nextRow.createCell(4);
+                        nextCell.setCellValue(rs.getString(5));
+                    }
+                    
+                    for(int j=0;j<5;j++){
+                    sheet.autoSizeColumn(j);
+                    }
+                       
+                } catch (SQLException ex) {
+                    Logger.getLogger(InventoryReport.class.getName()).log(Level.SEVERE, null, ex);
+                }//End of third sheet
+
+                //write your workbook to the file
+                FileOutputStream os = new FileOutputStream(outFile); //create a new stream
+                wb.write(os); //write to the stream
+                os.close(); //close the stream
+                
+                Email email = new Email();
+                email.sendEmail(toEmail, subject, body, "InventoryReport.xls");
+            }//end of for loop.
+            
+            Email2 confirmation = new Email2();
+            confirmation.sendEmail("youremail@email.com","Inv. Report Confirmation","The Store Inventory Report has run successfully.","list");
+            
+            con.close();
+
+        } catch (IOException | SQLException | ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+            Logger.getLogger(InventoryReport.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+}
