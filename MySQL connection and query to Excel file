@@ -1,0 +1,87 @@
+package daily.units.shipped;
+
+import java.io.*;
+import java.sql.*;
+import java.text.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.poi.hssf.usermodel.*;
+
+public class DailyUnitsShipped {
+    public static void main(String[] args) {
+        
+        try {
+            String db ="jdbc:mysql://"+"check comments for what goes here"; //db add address and port to end of string (ex. 11.111.11.111:3303/your-database)
+            String username="username"; //your username to connect to database
+            String password="password"; //your password to connect to database
+            
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            
+            Connection con = DriverManager.getConnection(db, username, password);
+            
+            Statement st = con.createStatement(); //statement
+            ResultSet rs; //results
+            
+            String query = "Insert your SQL Query Here"; //Your SQL Query
+            
+            rs = st.executeQuery(query);
+            
+            DateFormat df = new SimpleDateFormat("MM/dd/yyy"); //used for date formatting
+            java.util.Date date = new java.util.Date();
+            
+            File outFile = new File("file location and name of file");//file path of where to save file and file name (ex."\\\\TestUser\\Departments\\Mine\\test_file.xls")
+            
+            HSSFWorkbook wb = new HSSFWorkbook(); //creates a workbook
+            HSSFSheet sheet = wb.createSheet("Units Shippped Daily"); //new sheet and sheet name
+            HSSFRow header = sheet.createRow(0); //initialize a header row
+            
+            HSSFCellStyle style = wb.createCellStyle(); //this block creates the "style" of the header row (bold & centered)
+            HSSFFont font = wb.createFont();
+            font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+            style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+            style.setFont(font);
+            
+            HSSFCell cell = header.createCell(0); //sets the values of the header cells and the "style" of the cell from the previous block
+            cell.setCellValue("Shipment Date");
+            cell.setCellStyle(style);
+            
+            cell = header.createCell(1);
+            cell.setCellValue("Carrier");
+            cell.setCellStyle(style);
+            
+            cell = header.createCell(2);
+            cell.setCellValue("Units Shipped");
+            cell.setCellStyle(style);
+            
+            int rowNumber = 1; //row counter for the excel file
+            HSSFRow nextRow; //the rows you will be writing to
+            HSSFCell nextCell; //the cells you will be writing to
+            
+            while (rs.next()) { //while there are additional results grab the information and add to the sheet          
+                nextRow = sheet.createRow(rowNumber++); //create a new row and increment the rowCounter
+                nextCell = nextRow.createCell(0); //creat a cell
+                nextCell.setCellValue(df.format(rs.getDate(1))); //grab the information from the query and input into the cell created
+                nextCell = nextRow.createCell(1);
+                nextCell.setCellValue(rs.getString(2));
+                nextCell = nextRow.createCell(2); 
+                nextCell.setCellValue(rs.getInt(3));
+            }
+            
+            for(int j=0;j<3;j++){ //autosize the column width of the sheet that was just created
+                sheet.autoSizeColumn(j);
+            }
+            
+            FileOutputStream os = new FileOutputStream(outFile); //create a new stream
+            wb.write(os); //write to the stream
+            os.close(); //close the stream
+            con.close(); //close the connection
+            
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | SQLException ex) {
+            Logger.getLogger(DailyUnitsShipped.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(DailyUnitsShipped.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(DailyUnitsShipped.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }    
+}
