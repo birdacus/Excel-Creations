@@ -1,0 +1,78 @@
+package rma.repair.report;
+
+import java.io.*;
+import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class RMARepairReport {
+        public static void main(String[] args) {
+            
+try {
+            Scanner connect = new Scanner(new File("connection"));
+            String connection = connect.nextLine();
+            String db = connection; //db add address and port to end of string
+            String username="username"; //your username to connect
+            String password="password"; //your password to connect
+            
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            
+            Connection con = DriverManager.getConnection(db, username, password);
+            
+            Statement st = con.createStatement(); //statement
+            ResultSet rs; //results
+            
+            String query = "query";
+            
+            rs=st.executeQuery(query);
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int cC = rsmd.getColumnCount();
+            
+            DateFormat df = new SimpleDateFormat("MM/dd/yyy");
+            java.util.Date date = new java.util.Date();
+           
+            
+            FileWriter fw = new FileWriter("filepath\\file_name.CSV");
+            for(int i=1;i<=cC;i++){
+                fw.append(rs.getMetaData().getColumnName(i));
+                fw.append(",");
+            }
+                       
+            fw.append(System.getProperty("line.separator"));
+            
+            while(rs.next()){
+                for(int i=1;i<=cC;i++){
+                    if(rs.getObject(i)!=null){
+                        String data = rs.getObject(i).toString();
+                        if(data.contains(":")){
+                            data = df.format(rs.getObject(i));
+                        }
+                        fw.append(data);
+                        fw.append(",");
+                    }else{
+                        String data = "null";
+                        fw.append(data);
+                        fw.append(",");
+                    }
+                }
+                fw.append(System.getProperty("line.separator"));         
+            }
+            
+            fw.flush();
+            fw.close();
+            
+            con.close();
+            
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | SQLException ex) {
+            Logger.getLogger(RMARepairReport.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(RMARepairReport.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(RMARepairReport.class.getName()).log(Level.SEVERE, null, ex);
+        }   
+    }
+
+}
